@@ -19,7 +19,6 @@ namespace SilksongSteamInput
         internal static ConfigEntry<bool> PluginEnabled;
 
         internal InputHandle_t allHandles = new(Steamworks.Constants.STEAM_INPUT_HANDLE_ALL_CONTROLLERS);
-        internal bool ready = false;
 
         private void Awake()
         {
@@ -31,10 +30,7 @@ namespace SilksongSteamInput
             harmony.PatchAll();
 
             Logger = base.Logger;
-            Logger.LogInfo($"Waiting for GameManager to be ready");
-            WaitForGameManager();
         }
-
 
         // WaitForGameManager runs itself every 2s until GameManager.instance is valid.
         //
@@ -70,21 +66,23 @@ namespace SilksongSteamInput
                     SetInGame();
                 }
             };
-
         }
 
         private void Start()
         {
-            ready = true;
             Logger.LogInfo("Plugin started");
 
             // Not sure why this is needed when Unity initialises this for us...
+            // maybe the mod has its own "instance" of Steamworks, isolated from
+            // the one that Unity initialises?
+            //
+            // If we don't do this, ActivateActionSet doesn't work.
             SteamInput.Init(false);
 
             SetMenu();
-            Logger.LogInfo("GameManager is ready. Assuming SteamInput is initialized, getting connected controllers");
 
-            //InvokeRepeating(nameof(PrintControllerInfo), 1f, 1f);
+            Logger.LogInfo($"Waiting for GameManager to be ready");
+            WaitForGameManager();
         }
 
         private void SetMenu()
@@ -100,54 +98,5 @@ namespace SilksongSteamInput
             SteamInput.ActivateActionSet(allHandles, actionSet);
             Logger.LogInfo($"Set to InGameControls, actionSet: {actionSet}");
         }
-
-        //[HarmonyPatch(typeof(GameManager), nameof(GameManager.SetPausedState))]
-        //private static class GameManager_SetPausedState_Patch
-        //{
-        //    [HarmonyPostfix]
-        //    private static void Postfix(bool value)
-        //    {
-        //        if (!PluginEnabled.Value) return;
-        //        Logger.LogInfo($"Game paused state changed: {value}");
-
-        //        if (value)
-        //        {
-        //            Instance.SetMenu();
-        //        } else
-        //        {
-        //            Instance.SetInGame();
-        //        }
-
-        //        // Update SteamInput action set
-
-
-        //    }
-        //}
-
-        //[HarmonyPatch(typeof(HeroController), nameof(HeroController.Attack))]
-        //private static class HeroController_Attack_Patch
-        //{
-        //    [HarmonyPrefix]
-        //    private static void Prefix(HeroController __instance, ref AttackDirection attackDir)
-        //    {
-        //        Logger.LogInfo($"Attack called with direction (orig): {attackDir}, paused: {GameManager.instance.IsGamePaused()}");
-        //    }
-        //}
-
-        //private void PrintControllerInfo()
-        //{
-        //    // https://github.com/rlabrecque/Steamworks.NET/issues/73 means that this always returns 0
-        //    // (not just returning zero but the handles array is always empty too)
-        //    // InputHandle_t[] handles = new InputHandle_t[Steamworks.Constants.STEAM_INPUT_MAX_COUNT];
-        //    // int numControllers = SteamInput.GetConnectedControllers(handles);            
-
-        //    // Note: this won't work with there are multiple gamepads for some reason.
-        //    //
-        //    // Not sure when this happens but in the future we could
-        //    // just keep getting the next handle until we get a null handle.
-        //    var handle = SteamInput.GetControllerForGamepadIndex(0);
-        //}
-
-
     }
 }
