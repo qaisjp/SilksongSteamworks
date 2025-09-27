@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "SilksongSteamInput": {
+      "commandName": "Project"
+    },
+    "Silksong": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Hollow Knight Silksong\\Hollow Knight Silksong.exe"
+    }
+  }
+}
