@@ -10,19 +10,16 @@ using UnityEngine;
 using static InputModuleBinder;
 
 
-namespace SilksongSteamInput
-{
+namespace SilksongSteamInput {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
-    public class Plugin : BaseUnityPlugin
-    {
+    public class Plugin : BaseUnityPlugin {
         internal static Plugin Instance;
         internal static new ManualLogSource Logger;
         internal static ConfigEntry<bool> PluginEnabled;
 
         internal InputHandle_t allHandles = new(Steamworks.Constants.STEAM_INPUT_HANDLE_ALL_CONTROLLERS);
 
-        private void Awake()
-        {
+        private void Awake() {
             Instance = this; // patches run statically, but the plugin is an instance
 
             PluginEnabled = Config.Bind("General", "Enabled", true);
@@ -33,8 +30,7 @@ namespace SilksongSteamInput
             Logger = base.Logger;
         }
 
-        private void Start()
-        {
+        private void Start() {
             Logger.LogInfo("Plugin started");
 
             // Not sure why this is needed when Unity initialises this for us...
@@ -53,34 +49,26 @@ namespace SilksongSteamInput
         // WaitForGameManager runs itself every 2s until GameManager.instance is valid.
         //
         // TODO(qaisjp): find a better way to do this.
-        private void WaitForGameManager()
-        {
-            if (!GameManager.instance)
-            {
+        private void WaitForGameManager() {
+            if (!GameManager.instance) {
                 Logger.LogInfo("GameManager not found, waiting another 2s");
                 Invoke(nameof(WaitForGameManager), 2f);
                 return;
             }
 
 
-            GameManager.instance.GamePausedChange += (bool paused) =>
-            {
+            GameManager.instance.GamePausedChange += (bool paused) => {
                 Logger.LogInfo($"PausedEvent fired: {paused}");
-                if (paused)
-                {
+                if (paused) {
                     SetMenu();
-                }
-                else
-                {
+                } else {
                     SetInGame();
                 }
             };
 
-            GameManager.instance.GameStateChange += (GameState state) =>
-            {
+            GameManager.instance.GameStateChange += (GameState state) => {
                 Logger.LogInfo($"GameStateChange fired: {state}");
-                if (state != GameState.PAUSED)
-                {
+                if (state != GameState.PAUSED) {
                     SetInGame();
                 }
             };
@@ -91,8 +79,7 @@ namespace SilksongSteamInput
         // RegularlyFixGlyphs checks every second what controllers are connected,
         // and if it finds a PlayStation controller, it sets InputHandler.activeGamepadType
         // accordingly, so that the correct glyphs are shown in-game.
-        private void RegularlyFixGlyphs()
-        {
+        private void RegularlyFixGlyphs() {
             // The official way[0] to do this is to call GetDigitalActionOrigins every frame (it's fast)
             // but we actually need to read the controllers from Steam (which may not be as fast), so
             // this function calls itself every second.
@@ -104,8 +91,7 @@ namespace SilksongSteamInput
             int count = SteamInput.GetConnectedControllers(handles);
 
             GamepadType? gamepadType = null;
-            foreach (var handle in handles)
-            {
+            foreach (var handle in handles) {
                 // No more controllers
                 if (handle == null) break;
 
@@ -114,8 +100,7 @@ namespace SilksongSteamInput
                 // On Steam Deck, this ensures that if the user plugs in a PlayStation controller,
                 // the PlayStation glyphs will be used instead of the Xbox ones.
                 var inputType = SteamInput.GetInputTypeForHandle(handle);
-                gamepadType = inputType switch
-                {
+                gamepadType = inputType switch {
                     ESteamInputType.k_ESteamInputType_PS5Controller => GamepadType.PS5,
                     ESteamInputType.k_ESteamInputType_PS4Controller => GamepadType.PS4,
                     ESteamInputType.k_ESteamInputType_PS3Controller => GamepadType.PS3_WIN,
@@ -131,8 +116,7 @@ namespace SilksongSteamInput
             // Don't change the gamepad type if it's already correct or if it's unset
             var currActiveGamepadType = InputHandler.Instance.activeGamepadType;
             if (currActiveGamepadType == gamepadType) return;
-            if (currActiveGamepadType == GamepadType.NONE)
-            {
+            if (currActiveGamepadType == GamepadType.NONE) {
                 Logger.LogInfo($"RegularlyFixGlyphs: activeGamepadType is NONE, probably keyboard/mouse, not changing it");
                 return;
             }
@@ -170,16 +154,14 @@ namespace SilksongSteamInput
         /**
          * SetMenu switches the SteamInput action set to "MenuControls".
          */
-        private void SetMenu()
-        {
+        private void SetMenu() {
             var actionSet = SteamInput.GetActionSetHandle("MenuControls");
             SteamInput.ActivateActionSet(allHandles, actionSet);
             Logger.LogInfo($"Set to MenuControls, actionSet: {actionSet}");
         }
 
         // SetInGame switches the SteamInput action set to "InGameControls".
-        private void SetInGame()
-        {
+        private void SetInGame() {
             var actionSet = SteamInput.GetActionSetHandle("InGameControls");
             SteamInput.ActivateActionSet(allHandles, actionSet);
             Logger.LogInfo($"Set to InGameControls, actionSet: {actionSet}");
@@ -190,18 +172,15 @@ namespace SilksongSteamInput
         //
 
         [HarmonyPatch(typeof(HeroController), nameof(HeroController.Start))]
-        class HeroController_Start_Patch
-        {
+        class HeroController_Start_Patch {
             [HarmonyPostfix]
-            static void Postfix(HeroController __instance)
-            {
+            static void Postfix(HeroController __instance) {
                 Logger.LogInfo($"HeroController.Start postfix, hooking OnDeath {__instance}");
                 __instance.OnDeath += OnDeath;
             }
         }
 
-        private static void OnDeath()
-        {
+        private static void OnDeath() {
             Logger.LogInfo($"OnDeath fired");
             SteamTimeline.AddTimelineEvent("steam_death", "Killed", null, 0, 0, 0, ETimelineEventClipPriority.k_ETimelineEventClipPriority_Standard);
         }
