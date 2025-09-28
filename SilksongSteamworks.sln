@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SilksongSteamInput", "SilksongSteamInput\SilksongSteamInput.csproj", "{650318A5-706F-4AA3-8256-D635B5E045C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SilksongSteamworks", "SilksongSteamworks\SilksongSteamworks.csproj", "{650318A5-706F-4AA3-8256-D635B5E045C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

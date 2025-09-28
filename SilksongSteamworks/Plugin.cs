@@ -3,14 +3,10 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GlobalEnums;
 using HarmonyLib;
-using JetBrains.Annotations;
 using Steamworks;
-using System.Runtime.ExceptionServices;
 using UnityEngine;
-using static InputModuleBinder;
 
-
-namespace SilksongSteamInput {
+namespace SilksongSteamworks {
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin {
         internal static Plugin Instance;

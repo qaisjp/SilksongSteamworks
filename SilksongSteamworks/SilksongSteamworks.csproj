@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <AssemblyName>SilksongSteamInput</AssemblyName>
+    <AssemblyName>SilksongSteamworks</AssemblyName>
     <Product>Steam Input for Silksong</Product>
     <Version>1.0.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -12,7 +12,7 @@
       https://nuget.bepinex.dev/v3/index.json;
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
-    <RootNamespace>SilksongSteamInput</RootNamespace>
+    <RootNamespace>SilksongSteamworks</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,6 +28,6 @@
   </ItemGroup>
   
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="xcopy /y &quot;$(OutDir)SilksongSteamInput.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Hollow Knight Silksong\BepInEx\plugins&quot;" />
+    <Exec Command="xcopy /y &quot;$(OutDir)SilksongSteamworks.dll&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Hollow Knight Silksong\BepInEx\plugins&quot;" />
   </Target>
 </Project>
