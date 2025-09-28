@@ -4,16 +4,21 @@ using BepInEx.Logging;
 using GlobalEnums;
 using HarmonyLib;
 using Steamworks;
-using UnityEngine;
 
 namespace SilksongSteamworks {
+    static class Constants {
+        internal static InputHandle_t AllHandles = new(Steamworks.Constants.STEAM_INPUT_HANDLE_ALL_CONTROLLERS);
+    }
+
+
     [BepInPlugin(MyPluginInfo.PLUGIN_GUID, MyPluginInfo.PLUGIN_NAME, MyPluginInfo.PLUGIN_VERSION)]
     public class Plugin : BaseUnityPlugin {
+        // For access from Harmony patches, which are static
         internal static Plugin Instance;
         internal static new ManualLogSource Logger;
-        internal static ConfigEntry<bool> PluginEnabled;
 
-        internal InputHandle_t allHandles = new(Steamworks.Constants.STEAM_INPUT_HANDLE_ALL_CONTROLLERS);
+        internal static ConfigEntry<bool> PluginEnabled; // always true, someday we can allow disabling via mod menu
+        internal bool fixingGlyphs; // so we don't trigger multiple loops
 
         private void Awake() {
             Instance = this; // patches run statically, but the plugin is an instance
@@ -37,45 +42,44 @@ namespace SilksongSteamworks {
             SteamInput.Init(false);
 
             SetMenu();
-
-            Logger.LogInfo($"Waiting for GameManager to be ready");
-            WaitForGameManager();
         }
 
-        // WaitForGameManager runs itself every 2s until GameManager.instance is valid.
         //
-        // TODO(qaisjp): find a better way to do this.
-        private void WaitForGameManager() {
-            if (!GameManager.instance) {
-                Logger.LogInfo("GameManager not found, waiting another 2s");
-                Invoke(nameof(WaitForGameManager), 2f);
-                return;
+        // Set up pause state hooks on GameManager Start
+        //
+        [HarmonyPatch(typeof(GameManager), nameof(GameManager.Start))]
+        class GameManager_Start_Patch {
+            [HarmonyPostfix]
+            static void Postfix() {
+                Logger.LogInfo($"GameManager.Start postfix, hooking GamePausedChange and GameStateChange");
+                GameManager.instance.GamePausedChange += (bool paused) => {
+                    Logger.LogInfo($"PausedEvent fired: {paused}");
+                    if (paused) {
+                        Instance.SetMenu();
+                    } else {
+                        Instance.SetInGame();
+                    }
+                };
+
+                GameManager.instance.GameStateChange += (GameState state) => {
+                    Logger.LogInfo($"GameStateChange fired: {state}");
+                    if (state != GameState.PAUSED) {
+                        Instance.SetInGame();
+                    }
+                };
+
+                // Start the glyph fixing loop (but only once)
+                if (!Instance.fixingGlyphs) Instance.RegularlyFixGlyphs();
+
             }
-
-
-            GameManager.instance.GamePausedChange += (bool paused) => {
-                Logger.LogInfo($"PausedEvent fired: {paused}");
-                if (paused) {
-                    SetMenu();
-                } else {
-                    SetInGame();
-                }
-            };
-
-            GameManager.instance.GameStateChange += (GameState state) => {
-                Logger.LogInfo($"GameStateChange fired: {state}");
-                if (state != GameState.PAUSED) {
-                    SetInGame();
-                }
-            };
-
-            RegularlyFixGlyphs();
         }
 
         // RegularlyFixGlyphs checks every second what controllers are connected,
         // and if it finds a PlayStation controller, it sets InputHandler.activeGamepadType
         // accordingly, so that the correct glyphs are shown in-game.
         private void RegularlyFixGlyphs() {
+            fixingGlyphs = true;
+
             // The official way[0] to do this is to call GetDigitalActionOrigins every frame (it's fast)
             // but we actually need to read the controllers from Steam (which may not be as fast), so
             // this function calls itself every second.
@@ -89,7 +93,7 @@ namespace SilksongSteamworks {
             GamepadType? gamepadType = null;
             foreach (var handle in handles) {
                 // No more controllers
-                if (handle == null) break;
+                if (handle.m_InputHandle == 0) break;
 
                 // If there's any controller whose glyphs are PlayStation, force PlayStation glyphs.
                 //
@@ -111,9 +115,7 @@ namespace SilksongSteamworks {
 
             // Don't change the gamepad type if it's already correct or if it's unset
             var currActiveGamepadType = InputHandler.Instance.activeGamepadType;
-            if (currActiveGamepadType == gamepadType) return;
-            if (currActiveGamepadType == GamepadType.NONE) {
-                Logger.LogInfo($"RegularlyFixGlyphs: activeGamepadType is NONE, probably keyboard/mouse, not changing it");
+            if (currActiveGamepadType == gamepadType || currActiveGamepadType == GamepadType.NONE) {
                 return;
             }
 
@@ -147,19 +149,17 @@ namespace SilksongSteamworks {
         //    }
         //}
 
-        /**
-         * SetMenu switches the SteamInput action set to "MenuControls".
-         */
+        // SetMenu switches the SteamInput action set to "MenuControls".
         private void SetMenu() {
             var actionSet = SteamInput.GetActionSetHandle("MenuControls");
-            SteamInput.ActivateActionSet(allHandles, actionSet);
+            SteamInput.ActivateActionSet(Constants.AllHandles, actionSet);
             Logger.LogInfo($"Set to MenuControls, actionSet: {actionSet}");
         }
 
         // SetInGame switches the SteamInput action set to "InGameControls".
         private void SetInGame() {
             var actionSet = SteamInput.GetActionSetHandle("InGameControls");
-            SteamInput.ActivateActionSet(allHandles, actionSet);
+            SteamInput.ActivateActionSet(Constants.AllHandles, actionSet);
             Logger.LogInfo($"Set to InGameControls, actionSet: {actionSet}");
         }
 
