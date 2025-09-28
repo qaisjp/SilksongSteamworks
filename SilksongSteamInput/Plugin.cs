@@ -88,50 +88,52 @@ namespace SilksongSteamInput
             RegularlyFixGlyphs();
         }
 
-        // The official way[0] to do this is to call GetDigitalActionOrigins every frame (it's fast)
-        // but we actually need to read the controllers (which may not be as fast) regularly, so
-        // this function calls itself every second.
-        //
-        // [0] See "Step 3.3 - On-screen Glyphs" at https://partner.steamgames.com/doc/features/steam_controller/getting_started_for_devs
+        // RegularlyFixGlyphs checks every second what controllers are connected,
+        // and if it finds a PlayStation controller, it sets InputHandler.activeGamepadType
+        // accordingly, so that the correct glyphs are shown in-game.
         private void RegularlyFixGlyphs()
         {
+            // The official way[0] to do this is to call GetDigitalActionOrigins every frame (it's fast)
+            // but we actually need to read the controllers from Steam (which may not be as fast), so
+            // this function calls itself every second.
+            //
+            // [0] See "Step 3.3 - On-screen Glyphs" at https://partner.steamgames.com/doc/features/steam_controller/getting_started_for_devs
             Invoke(nameof(RegularlyFixGlyphs), 1.0f);
 
             var handles = new InputHandle_t[Steamworks.Constants.STEAM_INPUT_MAX_COUNT];
             int count = SteamInput.GetConnectedControllers(handles);
 
-            InputHandle_t handle;
             GamepadType? gamepadType = null;
-
-            // Loop over all controllers until we find a controller that needs glyph modifications
-            for (int i = 0; i < count; i++)
+            foreach (var handle in handles)
             {
-                handle = handles[i];
+                // No more controllers
+                if (handle == null) break;
+
+                // If there's any controller whose glyphs are PlayStation, force PlayStation glyphs.
+                //
+                // On Steam Deck, this ensures that if the user plugs in a PlayStation controller,
+                // the PlayStation glyphs will be used instead of the Xbox ones.
                 var inputType = SteamInput.GetInputTypeForHandle(handle);
-                if (inputType == ESteamInputType.k_ESteamInputType_PS5Controller)
+                gamepadType = inputType switch
                 {
-                    gamepadType = GamepadType.PS5;
-                    break;
-                }
-                else if (inputType == ESteamInputType.k_ESteamInputType_PS4Controller)
-                {
-                    gamepadType = GamepadType.PS4;
-                    break;
-                }
-                else if (inputType == ESteamInputType.k_ESteamInputType_PS3Controller)
-                {
-                    gamepadType = GamepadType.PS3_WIN;
-                    break;
-                }
-                else
-                {
-                    Logger.LogInfo($"RegularlyFixGlyphs: Skipping unknown controller type {inputType}");
-                }
+                    ESteamInputType.k_ESteamInputType_PS5Controller => GamepadType.PS5,
+                    ESteamInputType.k_ESteamInputType_PS4Controller => GamepadType.PS4,
+                    ESteamInputType.k_ESteamInputType_PS3Controller => GamepadType.PS3_WIN,
+                    _ => null
+                };
+                if (gamepadType != null) break;
+                Logger.LogInfo($"RegularlyFixGlyphs: Skipping unknown controller type {inputType}");
             }
 
-            if (gamepadType == null)
+            // No known gamepad found, nothing to do
+            if (gamepadType == null) return;
+
+            // Don't change the gamepad type if it's already correct or if it's unset
+            var currActiveGamepadType = InputHandler.Instance.activeGamepadType;
+            if (currActiveGamepadType == gamepadType) return;
+            if (currActiveGamepadType == GamepadType.NONE)
             {
-                // No known gamepad found, nothing to do
+                Logger.LogInfo($"RegularlyFixGlyphs: activeGamepadType is NONE, probably keyboard/mouse, not changing it");
                 return;
             }
 
@@ -140,25 +142,34 @@ namespace SilksongSteamInput
             // 2. or copypaste and patch UIButtonSkins to use our detected gamepad type instead of activeGamepadType
             //
             // based on user reports we might need to switch from (1) to (2)
-
-            var currActiveGamepadType = InputHandler.Instance.activeGamepadType;
-            if (currActiveGamepadType != gamepadType)
-            {
-                Logger.LogInfo($"RegularlyFixGlyphs: Setting activeGamepadType from {currActiveGamepadType} to {gamepadType}");
-                InputHandler.Instance.activeGamepadType = gamepadType.Value;
-            }
+            Logger.LogInfo($"RegularlyFixGlyphs: Setting activeGamepadType from {currActiveGamepadType} to {gamepadType}");
+            InputHandler.Instance.activeGamepadType = gamepadType.Value;
+            //
+            // # Alternative implementation
+            //
+            // Instead of directly setting activeGamepadType, we could callSetActiveGamepadType, but:
+            //
+            // - I'd need to massage a modified InputDevice
+            // - It overwrites some other things like the bindable keys (e.g. to support touch pad).
+            //   But since Steam Input is an Xbox controller I am not 100% sure we want that
+            //
+            //InputHandler.Instance.SetActiveGamepadType(unk);
         }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown("k"))
-            {
-                Logger.LogInfo("K pressed, killing self");
-                DamageTag.DamageTagInstance dmg = new DamageTag.DamageTagInstance { amount = 100 };
-                HeroController.instance.ApplyTagDamage(damageTagInstance: dmg);
-            }
-        }
+        // Debug: Press K to kill the player
+        //private void Update()
+        //{
+        //    if (Input.GetKeyDown("k"))
+        //    {
+        //        Logger.LogInfo("K pressed, killing self");
+        //        DamageTag.DamageTagInstance dmg = new DamageTag.DamageTagInstance { amount = 100 };
+        //        HeroController.instance.ApplyTagDamage(damageTagInstance: dmg);
+        //    }
+        //}
 
+        /**
+         * SetMenu switches the SteamInput action set to "MenuControls".
+         */
         private void SetMenu()
         {
             var actionSet = SteamInput.GetActionSetHandle("MenuControls");
@@ -166,6 +177,7 @@ namespace SilksongSteamInput
             Logger.LogInfo($"Set to MenuControls, actionSet: {actionSet}");
         }
 
+        // SetInGame switches the SteamInput action set to "InGameControls".
         private void SetInGame()
         {
             var actionSet = SteamInput.GetActionSetHandle("InGameControls");
@@ -173,7 +185,10 @@ namespace SilksongSteamInput
             Logger.LogInfo($"Set to InGameControls, actionSet: {actionSet}");
         }
 
-        // PostFix HeroController.Start to add a OnDeath handler
+        //
+        // Create a death Steam Timeline event when the player dies
+        //
+
         [HarmonyPatch(typeof(HeroController), nameof(HeroController.Start))]
         class HeroController_Start_Patch
         {
