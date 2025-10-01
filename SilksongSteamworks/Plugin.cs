@@ -17,13 +17,10 @@ namespace SilksongSteamworks {
         internal static Plugin Instance;
         internal static new ManualLogSource Logger;
 
-        internal static ConfigEntry<bool> PluginEnabled; // always true, someday we can allow disabling via mod menu
         internal bool fixingGlyphs; // so we don't trigger multiple loops
 
         private void Awake() {
             Instance = this; // patches run statically, but the plugin is an instance
-
-            PluginEnabled = Config.Bind("General", "Enabled", true);
 
             Harmony harmony = new(MyPluginInfo.PLUGIN_GUID);
             harmony.PatchAll();
@@ -32,8 +29,6 @@ namespace SilksongSteamworks {
         }
 
         private void Start() {
-            Logger.LogInfo("Plugin started");
-
             // Not sure why this is needed when Unity initialises this for us...
             // maybe the mod has its own "instance" of Steamworks, isolated from
             // the one that Unity initialises?
@@ -41,19 +36,22 @@ namespace SilksongSteamworks {
             // If we don't do this, ActivateActionSet doesn't work.
             SteamInput.Init(false);
 
+            //SteamInput.SetInputActionManifestFilePath
+
             SetMenu();
         }
 
         //
-        // Set up pause state hooks on GameManager Start
+        // Change action set when in menu or ingame
         //
+
         [HarmonyPatch(typeof(GameManager), nameof(GameManager.Start))]
         class GameManager_Start_Patch {
             [HarmonyPostfix]
             static void Postfix() {
-                Logger.LogInfo($"GameManager.Start postfix, hooking GamePausedChange and GameStateChange");
+                Logger.LogDebug($"GameManager.Start postfix, hooking GamePausedChange and GameStateChange");
                 GameManager.instance.GamePausedChange += (bool paused) => {
-                    Logger.LogInfo($"PausedEvent fired: {paused}");
+                    Logger.LogDebug($"PausedEvent fired: {paused}");
                     if (paused) {
                         Instance.SetMenu();
                     } else {
@@ -62,7 +60,7 @@ namespace SilksongSteamworks {
                 };
 
                 GameManager.instance.GameStateChange += (GameState state) => {
-                    Logger.LogInfo($"GameStateChange fired: {state}");
+                    Logger.LogDebug($"GameStateChange fired: {state}");
                     if (state != GameState.PAUSED) {
                         Instance.SetInGame();
                     }
@@ -71,6 +69,33 @@ namespace SilksongSteamworks {
                 // Start the glyph fixing loop (but only once)
                 if (!Instance.fixingGlyphs) Instance.RegularlyFixGlyphs();
 
+            }
+        }
+
+        // SetMenu switches the SteamInput action set to "MenuControls".
+        private void SetMenu() {
+            var actionSet = SteamInput.GetActionSetHandle("MenuControls");
+            SteamInput.ActivateActionSet(Constants.AllHandles, actionSet);
+            Logger.LogDebug($"Set to MenuControls, actionSet: {actionSet}");
+        }
+
+        // SetInGame switches the SteamInput action set to "InGameControls".
+        private void SetInGame() {
+            var actionSet = SteamInput.GetActionSetHandle("InGameControls");
+            SteamInput.ActivateActionSet(Constants.AllHandles, actionSet);
+            Logger.LogDebug($"Set to InGameControls, actionSet: {actionSet}");
+        }
+
+        //
+        // Fix glyphs for PlayStation controllers
+        //
+
+        [HarmonyPatch(typeof(InputHandler), nameof(InputHandler.Start))]
+        class InputHandler_Start_Patch {
+            [HarmonyPostfix]
+            static void Postfix() {
+                Logger.LogDebug($"InputHandler.Start postfix, starting glyph fixing loop");
+                if (!Instance.fixingGlyphs) Instance.RegularlyFixGlyphs();
             }
         }
 
@@ -138,6 +163,24 @@ namespace SilksongSteamworks {
             //InputHandler.Instance.SetActiveGamepadType(unk);
         }
 
+        //
+        // Create a death Steam Timeline event when the player dies
+        //
+
+        [HarmonyPatch(typeof(HeroController), nameof(HeroController.Start))]
+        class HeroController_Start_Patch {
+            [HarmonyPostfix]
+            static void Postfix(HeroController __instance) {
+                Logger.LogDebug($"HeroController.Start postfix, hooking OnDeath {__instance}");
+                __instance.OnDeath += OnDeath;
+            }
+        }
+
+        private static void OnDeath() {
+            Logger.LogDebug($"OnDeath fired");
+            SteamTimeline.AddTimelineEvent("steam_death", "Killed", null, 0, 0, 0, ETimelineEventClipPriority.k_ETimelineEventClipPriority_Standard);
+        }
+
         // Debug: Press K to kill the player
         //private void Update()
         //{
@@ -148,37 +191,5 @@ namespace SilksongSteamworks {
         //        HeroController.instance.ApplyTagDamage(damageTagInstance: dmg);
         //    }
         //}
-
-        // SetMenu switches the SteamInput action set to "MenuControls".
-        private void SetMenu() {
-            var actionSet = SteamInput.GetActionSetHandle("MenuControls");
-            SteamInput.ActivateActionSet(Constants.AllHandles, actionSet);
-            Logger.LogInfo($"Set to MenuControls, actionSet: {actionSet}");
-        }
-
-        // SetInGame switches the SteamInput action set to "InGameControls".
-        private void SetInGame() {
-            var actionSet = SteamInput.GetActionSetHandle("InGameControls");
-            SteamInput.ActivateActionSet(Constants.AllHandles, actionSet);
-            Logger.LogInfo($"Set to InGameControls, actionSet: {actionSet}");
-        }
-
-        //
-        // Create a death Steam Timeline event when the player dies
-        //
-
-        [HarmonyPatch(typeof(HeroController), nameof(HeroController.Start))]
-        class HeroController_Start_Patch {
-            [HarmonyPostfix]
-            static void Postfix(HeroController __instance) {
-                Logger.LogInfo($"HeroController.Start postfix, hooking OnDeath {__instance}");
-                __instance.OnDeath += OnDeath;
-            }
-        }
-
-        private static void OnDeath() {
-            Logger.LogInfo($"OnDeath fired");
-            SteamTimeline.AddTimelineEvent("steam_death", "Killed", null, 0, 0, 0, ETimelineEventClipPriority.k_ETimelineEventClipPriority_Standard);
-        }
     }
 }
