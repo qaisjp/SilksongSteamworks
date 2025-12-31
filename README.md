@@ -1,4 +1,4 @@
-# Silkworks: Silksong integration with Steam Input / Steamworks
+# Silkworks: Steam Input and more for Silksong
 
 This mod improves Hollow Knight Silksong's support for Steam Input and other Steamworks features
 
