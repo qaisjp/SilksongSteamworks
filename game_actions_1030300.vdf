@@ -1,0 +1,84 @@
+"In Game Actions"
+{
+	"actions"
+	{
+		"InGameControls"
+		{
+			"title"					"#Set_Ingame"
+            // "Button"
+            // {
+            //     "Action_Jump"       "#Action_Jump"
+            //     "Action_TopTool"    "#Action_TopTool"
+			// 	"Action_BttomTool"  "#Action_BottomTool"
+            //     "Action_Up"         "#Action_Up"
+            //     "Action_Down"       "#Action_Down"
+            //     "Action_Left"       "#Action_Left"
+            //     "Action_Right"      "#Action_Right"
+            //     "Action_Pause"      "#Action_Pause"
+			// 	"Action_PeekMap"    "#Action_PeekMap"
+            // }
+            // "StickPadGyro"
+            // {
+            //     "Move"
+            //     {
+            //         "title"         "#Action_Move"
+            //         "input_mode"    "joystick_move"
+            //     }
+            //     "Camera"
+            //     {
+            //         "title"         "#Action_Camera"
+            //         "input_mode"    "joystick_move"
+            //     }
+            // }
+		}
+		"MenuControls"
+		{
+			"title"		"#Set_Menu"
+			// "StickPadGyro"
+			// {
+			// }
+			// "AnalogTrigger"
+			// {
+			// }
+			// "Button"
+			// {
+			// 	"menu_up"		"#Menu_Up"
+			// 	"menu_down"		"#Menu_Down"
+			// 	"menu_left"		"#Menu_Left"
+			// 	"menu_right"	"#Menu_Right"
+			// 	"menu_select"	"#Menu_Select"
+			// 	"menu_cancel"	"#Menu_Cancel"
+			// 	"pause_menu"	"#Action_ReturnToGame"
+			// }
+		}
+	}
+	"localization"
+	{
+		"english"
+		{
+			"Title_Config1"			"Silkworks v1.0.0 -- Steam Input and more for Silksong"
+			"Description_Config1"	"This config was created by qaisjp."
+
+			"Set_Ingame"			"In-game"
+			"Set_Menu"				"Menu"
+			
+			"Action_Move"			"Movement"
+			"Action_Camera"			"Camera"
+			// "Action_Throttle"		"Throttle"
+			// "Action_Needolin"		"Needolin"
+			// "Action_Jump"			"Jump"
+			// "Action_Menu"			"Pause menu"
+			// "Action_ReturnToGame"	"Return to game"
+			// "Action_PeekMap"        "Peek map"
+			// "Action_BottomTool"     "Use bottom tool"
+			// "Action_TopTool"        "Use top tool"
+
+			// "Menu_Up"				"Up"
+			// "Menu_Down"				"Down"
+			// "Menu_Left"				"Left"
+			// "Menu_Right"			"Right"
+			// "Menu_Select"			"Select"
+			// "Menu_Cancel"			"Cancel"
+		}
+	}
+}
