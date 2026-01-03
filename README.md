@@ -1,4 +1,4 @@
-# Silkworks: Steam Input and more for Silksong
+# Silkworks: Steam Input and more for Silksong ([view demo on YouTube](https://youtu.be/gNmEASa1j6Y))
 
 This mod improves Hollow Knight Silksong's support for Steam Input and other Steamworks features
 
@@ -11,6 +11,25 @@ Current features:
 Future ideas:
 
 * Add support for named actions, e.g. "Needolin"
+
+## Screenshots
+
+Video demo: https://youtu.be/gNmEASa1j6Y
+
+### Action sets (requires advanced installation)
+
+<img width="1485" height="715" alt="image" src="https://github.com/user-attachments/assets/4c06699c-1307-4244-98de-0ad3c8b1d4f7" />
+
+### Steam Timeline integration
+
+<img width="915" height="286" alt="image" src="https://github.com/user-attachments/assets/3da2cbb8-2cc8-41c4-9037-1b3afad8a9ee" />
+
+### PlayStation glyphs
+
+<img width="105" height="35" alt="{3EA0FFAC-DFE3-4A3F-8085-649DB59D0588}" src="https://github.com/user-attachments/assets/3d722355-b6b3-40ac-9a29-9941aa7a8da6" />
+
+<img width="92" height="32" alt="{C103017A-3216-4C58-8951-47D65400A2D3}" src="https://github.com/user-attachments/assets/2e37ab7e-1165-477e-a2db-fe28bcb61156" />
+
 
 ## Installation instructions
 
@@ -26,7 +45,7 @@ Future ideas:
 
 The mod is now installed and should work.
 
-### Install with action sets
+### Advanced installation (includes action sets)
 
 This lets you set different controller keybinds based on whether you're in-game vs. in-menu.
 
